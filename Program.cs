@@ -104,52 +104,61 @@ namespace EbayOrderService
         /// </summary>
         public static StringCollection GetAllOrderIds()
         {
-            Console.WriteLine("Orders Ids");
-
-            string refreshToken = GetRefreshCode("Your Code");
-            GetOrdersCall getOrdersApiCall = new GetOrdersCall(context);
-
-            //time filter to get last 30 days orders
-            TimeFilter timeFilter = new TimeFilter();
-            timeFilter.TimeFrom = DateTime.UtcNow.AddDays(-30);
-            timeFilter.TimeTo = DateTime.UtcNow;
-
-            context.ApiCredential.eBayToken = refreshToken.Trim();
-
-            DetailLevelCodeType[] detailLevels = new DetailLevelCodeType[] { DetailLevelCodeType.ReturnSummary };
-            getOrdersApiCall.DetailLevelList = new DetailLevelCodeTypeCollection(detailLevels);
-            //getOrdersApiCall.GetOrders(timeFilter, TradingRoleCodeType.Seller, OrderStatusCodeType.Completed); //To get only completed orders
-            getOrdersApiCall.GetOrders(timeFilter, TradingRoleCodeType.Seller, OrderStatusCodeType.All); //To get all orders
-
-            PaginationType pagination = new PaginationType()
-            {
-                EntriesPerPage = 10,
-                PageNumber = 0,
-            };
-
-            bool hasMoreOrders = false;
-
             StringCollection orderIds = new StringCollection();
-            do
+            try
             {
-                pagination.PageNumber += 1;
+                Console.WriteLine("Orders Ids");
 
-                getOrdersApiCall.Pagination = pagination;
+                string refreshToken = GetRefreshCode("Your Code");
+                GetOrdersCall getOrdersApiCall = new GetOrdersCall(context);
 
-                getOrdersApiCall.Execute();
+                //time filter to get last 30 days orders
+                TimeFilter timeFilter = new TimeFilter();
+                timeFilter.TimeFrom = DateTime.UtcNow.AddDays(-30);
+                timeFilter.TimeTo = DateTime.UtcNow;
 
-                if (getOrdersApiCall.ApiResponse.Ack != AckCodeType.Failure)
+                context.ApiCredential.eBayToken = refreshToken.Trim();
+
+                DetailLevelCodeType[] detailLevels = new DetailLevelCodeType[] { DetailLevelCodeType.ReturnSummary };
+                getOrdersApiCall.DetailLevelList = new DetailLevelCodeTypeCollection(detailLevels);
+                //getOrdersApiCall.GetOrders(timeFilter, TradingRoleCodeType.Seller, OrderStatusCodeType.Completed); //To get only completed orders
+                getOrdersApiCall.GetOrders(timeFilter, TradingRoleCodeType.Seller, OrderStatusCodeType.All); //To get all orders
+
+                PaginationType pagination = new PaginationType()
                 {
+                    EntriesPerPage = 10,
+                    PageNumber = 0,
+                };
 
-                    foreach (OrderType order in getOrdersApiCall.ApiResponse.OrderArray)
+                bool hasMoreOrders = false;
+
+                do
+                {
+                    pagination.PageNumber += 1;
+
+                    getOrdersApiCall.Pagination = pagination;
+
+                    getOrdersApiCall.Execute();
+
+                    if (getOrdersApiCall.ApiResponse.Ack != AckCodeType.Failure)
                     {
-                        orderIds.Add(order.OrderID);
-                    }
 
-                    hasMoreOrders = getOrdersApiCall.HasMoreOrders;
-                }
-            } while (hasMoreOrders);
-            return orderIds;
+                        foreach (OrderType order in getOrdersApiCall.ApiResponse.OrderArray)
+                        {
+                            orderIds.Add(order.OrderID);
+                        }
+
+                        hasMoreOrders = getOrdersApiCall.HasMoreOrders;
+                    }
+                } while (hasMoreOrders);
+                return orderIds;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error reading OrderIds: " + ex.Message);
+                return orderIds;
+            }
+
         }
         /// <summary>
         /// Fetches complete order details for each OrderID.
